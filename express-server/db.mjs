@@ -1,7 +1,11 @@
 import pg from "pg";
 import { config } from "./config.mjs";
 
-const pool = new pg.Pool(config.db);
+const poolConfig = { ...config.db };
+if (process.env.DB_SSL !== undefined) {
+  poolConfig.ssl = { rejectUnauthorized: false };
+}
+const pool = new pg.Pool(poolConfig);
 
 pool.on("error", (err) => {
   console.error("Unexpected pool error:", err.message);
