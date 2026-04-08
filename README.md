@@ -1,73 +1,55 @@
-# React + TypeScript + Vite
+# Networking Events
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web application for discovering networking events and finding business partners.
 
-Currently, two official plugins are available:
+## Frontend
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React + TypeScript + Vite + Redux Toolkit + Recharts
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open http://localhost:5173
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Build for production:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+npm run preview
 ```
+
+### Pages
+
+- `/` — event list with search and favorites
+- `/register/:eventId` — registration form (Zod validation)
+- `/participants/:eventId` — participant list with search
+- `/analytics` — charts and stats, external event import
+
+## Server
+
+Node.js HTTP server (no frameworks)
+
+```bash
+npm install
+npm run server:dev
+```
+
+Runs at http://localhost:3000
+
+### API
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/events` | All events |
+| GET | `/api/events?search=keyword` | Filter by title |
+| GET | `/api/events/:id` | Single event |
+
+`server:dev` uses nodemon for auto-restart on file changes. Use `npm run server` for a plain node start.
+
+## Tech Stack
+
+- **Frontend:** React 19, TypeScript, Vite, Redux Toolkit, React Router, Zod, Recharts
+- **Backend:** Node.js, http module, nodemon
+- **Deploy:** Vercel (frontend)
