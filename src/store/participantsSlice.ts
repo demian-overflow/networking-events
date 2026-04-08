@@ -28,7 +28,7 @@ export const fetchParticipants = createAsyncThunk<
   Participant[],
   number,
   { rejectValue: string }
->("participants/fetch", async (eventId, { dispatch, rejectWithValue }) => {
+>("participants/fetch", async (eventId) => {
   try {
     const res = await api.getParticipants(eventId);
     return res.data.map((p) => ({
@@ -37,19 +37,9 @@ export const fetchParticipants = createAsyncThunk<
       email: p.email,
       registeredAt: p.registered_at,
     }));
-  } catch (error) {
-    // Fallback to localStorage if not logged in
-    try {
-      const raw = localStorage.getItem(`participants-${eventId}`);
-      if (raw) {
-        return JSON.parse(raw) as Participant[];
-      }
-      return [];
-    } catch {
-      const msg = "Не вдалося завантажити учасників";
-      dispatch(addToast({ message: msg, type: "error" }));
-      return rejectWithValue(msg);
-    }
+  } catch {
+    // API requires auth — return empty list for public view
+    return [];
   }
 });
 

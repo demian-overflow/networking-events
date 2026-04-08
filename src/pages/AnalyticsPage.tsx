@@ -38,9 +38,19 @@ export function AnalyticsPage() {
   const importing = useAppSelector(selectImporting);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  function loadAnalytics() {
+    setLoading(true);
+    setError("");
+    api.getAnalytics()
+      .then(setData)
+      .catch((err) => setError(err.message || "Не вдалося завантажити"))
+      .finally(() => setLoading(false));
+  }
 
   useEffect(() => {
-    api.getAnalytics().then(setData).catch(() => {}).finally(() => setLoading(false));
+    loadAnalytics();
   }, []);
 
   return (
@@ -79,9 +89,10 @@ export function AnalyticsPage() {
         <div className="center-content" style={{ padding: "80px 0" }}>
           <p className="text-muted">Завантаження аналітики...</p>
         </div>
-      ) : !data ? (
+      ) : error || !data ? (
         <div className="center-content" style={{ padding: "80px 0" }}>
-          <p className="text-muted">Не вдалося завантажити аналітику. Переконайтесь, що сервер запущено.</p>
+          <p className="text-muted">{error || "Не вдалося завантажити аналітику"}</p>
+          <button className="btn btn-secondary" onClick={loadAnalytics}>Спробувати знову</button>
         </div>
       ) : (
         <>

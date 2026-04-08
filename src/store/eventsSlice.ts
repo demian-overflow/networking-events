@@ -55,10 +55,10 @@ const initialState = eventsAdapter.getInitialState<EventsExtra>({
 // Fetch events from backend API
 export const fetchEvents = createAsyncThunk<NetworkingEvent[], void>(
   "events/fetch",
-  async () => {
+  async (_, { rejectWithValue }) => {
     try {
       const res = await api.getEvents("limit=100");
-      return (res.data as Array<Record<string, unknown>>).map((e) => ({
+      return res.data.map((e) => ({
         id: e.id as number,
         title: e.title as string,
         description: e.description as string,
@@ -67,9 +67,9 @@ export const fetchEvents = createAsyncThunk<NetworkingEvent[], void>(
         location: e.location as string,
         tags: (e.tags as string[]) ?? [],
       }));
-    } catch {
-      // API unavailable — return static seed data
-      return seedEvents;
+    } catch (err) {
+      console.warn("API unavailable, using static data:", err);
+      return rejectWithValue("api_down");
     }
   }
 );
@@ -165,6 +165,10 @@ const eventsSlice = createSlice({
       .addCase(fetchEvents.rejected, (state) => {
         state.loading = false;
         state.loaded = true;
+        // Fallback: load static seed data if API unreachable
+        if (Object.keys(state.entities).length === 0) {
+          eventsAdapter.setAll(state, seedEvents);
+        }
       })
       .addCase(importExternalEvents.pending, (state) => {
         state.importing = true;
