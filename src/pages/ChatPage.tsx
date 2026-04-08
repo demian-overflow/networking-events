@@ -24,7 +24,7 @@ export function ChatPage() {
   const typingTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
-    const socket = io(SOCKET_URL, { withCredentials: true });
+    const socket = io(SOCKET_URL);
     socketRef.current = socket;
 
     socket.on("connect", () => setConnected(true));

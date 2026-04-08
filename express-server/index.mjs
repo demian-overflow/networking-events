@@ -107,7 +107,7 @@ app.use((err, req, res, _next) => {
 const server = http.createServer(app);
 
 // Socket.io chat
-setupChat(server, sessionMiddleware);
+setupChat(server);
 
 server.listen(config.port, config.host, () => {
   const addr = server.address();
