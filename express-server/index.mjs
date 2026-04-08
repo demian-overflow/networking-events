@@ -3,6 +3,7 @@ import express from "express";
 import { config } from "./config.mjs";
 import { requestLogger } from "./middleware/logger.mjs";
 import eventsRouter from "./routes/events.mjs";
+import participantsRouter from "./routes/participants.mjs";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/events", eventsRouter);
+app.use("/participants", participantsRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -40,9 +42,12 @@ server.listen(config.port, config.host, () => {
   const host = addr.address === "0.0.0.0" ? "localhost" : addr.address;
   console.log(`Express server running at http://${host}:${addr.port}`);
   console.log("Routes:");
-  console.log("  GET /events                              — all events (paginated)");
-  console.log("  GET /events?page=1&limit=5               — pagination");
-  console.log("  GET /events?sort=date&order=desc          — sorting");
-  console.log("  GET /events?search=fintech                — search");
-  console.log("  GET /events/:id                          — single event");
+  console.log("  GET /events                               — all events (paginated)");
+  console.log("  GET /events?page=1&limit=5                — offset pagination");
+  console.log("  GET /events?cursor=5&limit=5              — cursor pagination");
+  console.log("  GET /events?sort=date&order=desc           — sorting");
+  console.log("  GET /events?search=fintech                 — search");
+  console.log("  GET /events/:id                           — single event");
+  console.log("  GET /participants/:eventId                 — participants (paginated)");
+  console.log("  GET /participants/:eventId?cursor=10       — cursor pagination");
 });

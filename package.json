@@ -11,11 +11,13 @@
     "server": "node server/index.mjs",
     "server:dev": "nodemon server/index.mjs",
     "express": "node express-server/index.mjs",
-    "express:dev": "nodemon express-server/index.mjs"
+    "express:dev": "nodemon express-server/index.mjs",
+    "db:seed": "node express-server/db/seed.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
     "express": "^5.2.1",
+    "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-redux": "^9.2.0",
