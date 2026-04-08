@@ -15,11 +15,13 @@
     "db:seed": "node express-server/db/seed.mjs"
   },
   "dependencies": {
+    "@apollo/server": "^5.5.0",
     "@reduxjs/toolkit": "^2.11.2",
     "bcrypt": "^6.0.0",
     "connect-pg-simple": "^10.0.0",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "graphql": "^16.13.2",
     "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

@@ -20,8 +20,17 @@ export async function createTables() {
       date          DATE NOT NULL,
       organizer     VARCHAR(255) NOT NULL,
       location      VARCHAR(255) NOT NULL DEFAULT '',
-      tags          TEXT[] NOT NULL DEFAULT '{}'
+      tags          TEXT[] NOT NULL DEFAULT '{}',
+      creator_id    INTEGER REFERENCES users(id) ON DELETE SET NULL
     );
+  `);
+
+  // Add creator_id if table already exists without it
+  await query(`
+    DO $$ BEGIN
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS creator_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+    EXCEPTION WHEN others THEN NULL;
+    END $$;
   `);
 
   await query(`
@@ -50,6 +59,7 @@ export async function createTables() {
   await query(`CREATE INDEX IF NOT EXISTS idx_events_title ON events(title);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_events_date_id ON events(date, id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_events_title_id ON events(title, id);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_events_creator_id ON events(creator_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_participants_event_id ON participants(event_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_participants_registered_at ON participants(registered_at);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);

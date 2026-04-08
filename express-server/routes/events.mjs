@@ -2,7 +2,7 @@ import { Router } from "express";
 import { query } from "../db.mjs";
 import { config } from "../config.mjs";
 import { validateEventsQuery } from "../middleware/validateQuery.mjs";
-import { requireRole } from "../middleware/auth.mjs";
+import { requireAuth, requireRole } from "../middleware/auth.mjs";
 
 const router = Router();
 
@@ -11,7 +11,6 @@ const SORT_COLUMNS = { date: "date", title: "title" };
 // GET /events — offset-based pagination (default)
 router.get("/", validateEventsQuery, async (req, res, next) => {
   try {
-    // If cursor param present, use cursor-based pagination
     if (req.query.cursor) {
       return cursorPaginate(req, res);
     }
@@ -28,38 +27,33 @@ router.get("/", validateEventsQuery, async (req, res, next) => {
     let paramIdx = 1;
 
     if (search) {
-      conditions.push(`title ILIKE $${paramIdx}`);
+      conditions.push(`e.title ILIKE $${paramIdx}`);
       params.push(`%${search}%`);
       paramIdx++;
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    // Count total
-    const countResult = await query(`SELECT COUNT(*) AS total FROM events ${where}`, params);
+    const countResult = await query(`SELECT COUNT(*) AS total FROM events e ${where}`, params);
     const total = Number(countResult.rows[0].total);
 
-    // Fetch page
     const dataResult = await query(
-      `SELECT * FROM events ${where} ORDER BY ${sortCol} ${order}, id ${order} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+      `SELECT e.*, u.full_name AS creator_name, u.email AS creator_email
+       FROM events e LEFT JOIN users u ON e.creator_id = u.id
+       ${where} ORDER BY e.${sortCol} ${order}, e.id ${order}
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
       [...params, limit, offset]
     );
 
     res.json({
       data: dataResult.rows,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (err) {
     next(err);
   }
 });
 
-// Cursor-based pagination for infinite scroll
 async function cursorPaginate(req, res) {
   const cursor = Number(req.query.cursor);
   const limit = Number(req.query.limit) || config.defaultLimit;
@@ -68,12 +62,12 @@ async function cursorPaginate(req, res) {
   const order = req.query.order === "desc" ? "DESC" : "ASC";
   const op = order === "DESC" ? "<" : ">";
 
-  const conditions = [`(${sortCol}, id) ${op} (SELECT ${sortCol}, id FROM events WHERE id = $1)`];
+  const conditions = [`(e.${sortCol}, e.id) ${op} (SELECT ${sortCol}, id FROM events WHERE id = $1)`];
   const params = [cursor];
   let paramIdx = 2;
 
   if (search) {
-    conditions.push(`title ILIKE $${paramIdx}`);
+    conditions.push(`e.title ILIKE $${paramIdx}`);
     params.push(`%${search}%`);
     paramIdx++;
   }
@@ -81,27 +75,27 @@ async function cursorPaginate(req, res) {
   const where = `WHERE ${conditions.join(" AND ")}`;
 
   const result = await query(
-    `SELECT * FROM events ${where} ORDER BY ${sortCol} ${order}, id ${order} LIMIT $${paramIdx}`,
+    `SELECT e.*, u.full_name AS creator_name, u.email AS creator_email
+     FROM events e LEFT JOIN users u ON e.creator_id = u.id
+     ${where} ORDER BY e.${sortCol} ${order}, e.id ${order} LIMIT $${paramIdx}`,
     [...params, limit]
   );
 
   const data = result.rows;
   const nextCursor = data.length === limit ? data[data.length - 1].id : null;
 
-  res.json({
-    data,
-    pagination: {
-      limit,
-      nextCursor,
-    },
-  });
+  res.json({ data, pagination: { limit, nextCursor } });
 }
 
 // GET /events/:id
 router.get("/:id", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const result = await query("SELECT * FROM events WHERE id = $1", [id]);
+    const result = await query(
+      `SELECT e.*, u.full_name AS creator_name, u.email AS creator_email
+       FROM events e LEFT JOIN users u ON e.creator_id = u.id WHERE e.id = $1`,
+      [id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Подію не знайдено" });
@@ -113,26 +107,44 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-// DELETE /events/:id — admin only
-router.delete("/:id", requireRole("admin"), async (req, res, next) => {
+// POST /events — create event (auth required)
+router.post("/", requireAuth, async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    const result = await query("DELETE FROM events WHERE id = $1 RETURNING id", [id]);
+    const { title, description, date, organizer, location, tags } = req.body;
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Подію не знайдено" });
+    if (!title || !date) {
+      return res.status(400).json({ error: "title та date є обов'язковими" });
     }
 
-    res.json({ message: "Подію видалено", id });
+    const result = await query(
+      `INSERT INTO events (title, description, date, organizer, location, tags, creator_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [title, description ?? "", date, organizer ?? "", location ?? "", tags ?? [], req.session.userId]
+    );
+
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     next(err);
   }
 });
 
-// PUT /events/:id — admin only
-router.put("/:id", requireRole("admin"), async (req, res, next) => {
+// PUT /events/:id — edit own event, or any if admin
+router.put("/:id", requireAuth, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
+
+    // Check ownership or admin
+    const existing = await query("SELECT creator_id FROM events WHERE id = $1", [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: "Подію не знайдено" });
+    }
+
+    const isOwner = existing.rows[0].creator_id === req.session.userId;
+    const isAdmin = req.session.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "Можна редагувати лише свої події" });
+    }
+
     const { title, description, date, organizer, location, tags } = req.body;
 
     const result = await query(
@@ -143,11 +155,30 @@ router.put("/:id", requireRole("admin"), async (req, res, next) => {
       [title, description, date, organizer, location, tags, id]
     );
 
-    if (result.rows.length === 0) {
+    res.json(result.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /events/:id — delete own event, or any if admin
+router.delete("/:id", requireAuth, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+
+    const existing = await query("SELECT creator_id FROM events WHERE id = $1", [id]);
+    if (existing.rows.length === 0) {
       return res.status(404).json({ error: "Подію не знайдено" });
     }
 
-    res.json(result.rows[0]);
+    const isOwner = existing.rows[0].creator_id === req.session.userId;
+    const isAdmin = req.session.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "Можна видаляти лише свої події" });
+    }
+
+    await query("DELETE FROM events WHERE id = $1", [id]);
+    res.json({ message: "Подію видалено", id });
   } catch (err) {
     next(err);
   }

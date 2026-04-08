@@ -84,6 +84,36 @@ router.get("/:eventId", requireAuth, async (req, res, next) => {
   }
 });
 
+// POST /participants — register for event (auth required)
+router.post("/", requireAuth, async (req, res, next) => {
+  try {
+    const { event_id, full_name, email } = req.body;
+
+    if (!event_id || !full_name || !email) {
+      return res.status(400).json({ error: "event_id, full_name та email є обов'язковими" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Невірний формат email" });
+    }
+
+    const eventResult = await query("SELECT id FROM events WHERE id = $1", [event_id]);
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({ error: "Подію не знайдено" });
+    }
+
+    const result = await query(
+      "INSERT INTO participants (event_id, full_name, email) VALUES ($1, $2, $3) RETURNING *",
+      [event_id, full_name, email]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /participants/:eventId/:participantId — admin only
 router.delete("/:eventId/:participantId", requireRole("admin"), async (req, res, next) => {
   try {

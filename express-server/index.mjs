@@ -2,12 +2,15 @@ import http from "node:http";
 import express from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import { ApolloServer, HeaderMap } from "@apollo/server";
 import { config } from "./config.mjs";
 import pool from "./db.mjs";
 import { requestLogger } from "./middleware/logger.mjs";
 import authRouter from "./routes/auth.mjs";
 import eventsRouter from "./routes/events.mjs";
 import participantsRouter from "./routes/participants.mjs";
+import { typeDefs } from "./graphql/schema.mjs";
+import { resolvers } from "./graphql/resolvers.mjs";
 
 const PgStore = connectPgSimple(session);
 const app = express();
@@ -16,7 +19,7 @@ const app = express();
 app.use(express.json());
 app.use(requestLogger);
 
-// CORS (with credentials for sessions)
+// CORS
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", config.corsOrigin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -26,28 +29,62 @@ app.use((req, res, next) => {
   next();
 });
 
-// Sessions (stored in PostgreSQL)
-app.use(
-  session({
-    store: new PgStore({ pool, tableName: "session" }),
-    secret: config.session.secret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: config.session.maxAge,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false, // set true behind HTTPS in prod
-    },
-  })
-);
+// Sessions
+const sessionMiddleware = session({
+  store: new PgStore({ pool, tableName: "session" }),
+  secret: config.session.secret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: config.session.maxAge,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+  },
+});
+app.use(sessionMiddleware);
 
-// Routes
+// REST routes
 app.use("/auth", authRouter);
 app.use("/events", eventsRouter);
 app.use("/participants", participantsRouter);
 
-// 404 handler
+// GraphQL via Apollo Server v5 (manual Express handler)
+const apollo = new ApolloServer({ typeDefs, resolvers });
+await apollo.start();
+
+app.post("/graphql", async (req, res) => {
+  const headers = new HeaderMap();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (typeof value === "string") headers.set(key, value);
+  }
+
+  const httpGraphQLResponse = await apollo.executeHTTPGraphQLRequest({
+    httpGraphQLRequest: {
+      method: req.method,
+      headers,
+      body: req.body,
+      search: new URL(req.url, `http://${req.headers.host}`).search ?? "",
+    },
+    context: async () => ({ session: req.session }),
+  });
+
+  for (const [key, value] of httpGraphQLResponse.headers) {
+    res.setHeader(key, value);
+  }
+  res.status(httpGraphQLResponse.status || 200);
+
+  if (httpGraphQLResponse.body.kind === "complete") {
+    res.send(httpGraphQLResponse.body.string);
+  } else {
+    for await (const chunk of httpGraphQLResponse.body.asyncIterator) {
+      res.write(chunk);
+    }
+    res.end();
+  }
+});
+
+// 404
 app.use((req, res) => {
   res.status(404).json({ error: "Маршрут не знайдено" });
 });
@@ -63,17 +100,7 @@ const server = http.createServer(app);
 server.listen(config.port, config.host, () => {
   const addr = server.address();
   const host = addr.address === "0.0.0.0" ? "localhost" : addr.address;
-  console.log(`Express server running at http://${host}:${addr.port}`);
-  console.log("Public routes:");
-  console.log("  POST /auth/register                       — create account");
-  console.log("  POST /auth/login                          — login");
-  console.log("  POST /auth/logout                         — logout");
-  console.log("  GET  /auth/me                             — current user (auth)");
-  console.log("  GET  /events                              — all events");
-  console.log("  GET  /events/:id                          — single event");
-  console.log("Protected routes:");
-  console.log("  GET    /participants/:eventId              — list (auth)");
-  console.log("  PUT    /events/:id                        — edit event (admin)");
-  console.log("  DELETE /events/:id                        — delete event (admin)");
-  console.log("  DELETE /participants/:eid/:pid             — remove participant (admin)");
+  console.log(`Server running at http://${host}:${addr.port}`);
+  console.log("REST:    /auth, /events, /participants");
+  console.log("GraphQL: POST /graphql");
 });

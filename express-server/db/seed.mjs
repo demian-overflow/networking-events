@@ -27,6 +27,7 @@ async function seed() {
   // Clear existing data
   await query("DELETE FROM participants");
   await query("DELETE FROM events");
+  await query("DELETE FROM session");
   await query("DELETE FROM users");
   await query("ALTER SEQUENCE events_id_seq RESTART WITH 1");
   await query("ALTER SEQUENCE participants_id_seq RESTART WITH 1");
@@ -42,13 +43,15 @@ async function seed() {
     );
   }
 
-  // Seed events
+  // Seed events (assign creator_id: admin=1 for first 5, organizer=2 for rest)
   console.log("Seeding events...");
-  for (const event of events) {
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    const creatorId = i < 5 ? 1 : 2;
     await query(
-      `INSERT INTO events (title, description, date, organizer, location, tags)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [event.title, event.description, event.date, event.organizer, event.location, event.tags]
+      `INSERT INTO events (title, description, date, organizer, location, tags, creator_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [event.title, event.description, event.date, event.organizer, event.location, event.tags, creatorId]
     );
   }
 
