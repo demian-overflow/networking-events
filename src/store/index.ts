@@ -4,6 +4,7 @@ import { eventsReducer } from "./eventsSlice";
 import { participantsReducer } from "./participantsSlice";
 import { themeReducer } from "./themeSlice";
 import { toastsReducer } from "./toastsSlice";
+import { authReducer } from "./authSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ export const store = configureStore({
     participants: participantsReducer,
     theme: themeReducer,
     toasts: toastsReducer,
+    auth: authReducer,
   },
 });
 

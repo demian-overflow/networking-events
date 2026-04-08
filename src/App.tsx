@@ -3,11 +3,13 @@ import { Routes, Route } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "./store";
 import { selectTheme } from "./store/themeSlice";
 import { fetchEvents } from "./store/eventsSlice";
+import { checkSession } from "./store/authSlice";
 import { HomePage } from "./pages/HomePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ParticipantsPage } from "./pages/ParticipantsPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { ChatPage } from "./pages/ChatPage";
+import { LoginPage } from "./pages/LoginPage";
 import { ToastContainer } from "./components/ToastContainer";
 
 export default function App() {
@@ -16,6 +18,7 @@ export default function App() {
 
   useEffect(() => {
     dispatch(fetchEvents());
+    dispatch(checkSession());
   }, [dispatch]);
 
   return (
@@ -26,6 +29,7 @@ export default function App() {
         <Route path="/participants/:eventId" element={<ParticipantsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/login" element={<LoginPage />} />
       </Routes>
       <ToastContainer />
     </div>

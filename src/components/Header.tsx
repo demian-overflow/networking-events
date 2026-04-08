@@ -9,6 +9,7 @@ import {
   setSearch,
   toggleFavoritesOnly,
 } from "../store/eventsSlice";
+import { selectUser, logout } from "../store/authSlice";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Header() {
@@ -17,6 +18,7 @@ export function Header() {
   const favoritesOnly = useAppSelector(selectFavoritesOnly);
   const totalCount = useAppSelector(selectTotalCount);
   const filteredCount = useAppSelector(selectFilteredEvents).length;
+  const user = useAppSelector(selectUser);
   const [focused, setFocused] = useState(false);
 
   return (
@@ -95,6 +97,33 @@ export function Header() {
           </Link>
 
           <ThemeToggle />
+
+          {user ? (
+            <div className="user-menu">
+              <div className="user-avatar">
+                {user.full_name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()}
+              </div>
+              <div className="user-info">
+                <span className="user-name">{user.full_name}</span>
+                <span className="user-role">{user.role}</span>
+              </div>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => dispatch(logout())}
+              >
+                Вийти
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="btn btn-primary btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              <span className="analytics-label">Увійти</span>
+            </Link>
+          )}
 
           <span className="result-count">
             {filteredCount} / {totalCount}
