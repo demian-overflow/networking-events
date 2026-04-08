@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "title": "Startup Founders Meetup",
+    "description": "Вечір для засновників стартапів та інвесторів. Пітчі проєктів, обмін досвідом та пошук партнерів для спільних підприємств.",
+    "date": "2026-04-18",
+    "organizer": "Kyiv Startup Hub",
+    "location": "Київ, UNIT.City",
+    "tags": ["стартапи", "інвестори", "пітч"]
+  },
+  {
+    "id": 2,
+    "title": "Tech & Business Networking",
+    "description": "Неформальна зустріч IT-спеціалістів та підприємців. Знайомства, обмін контактами, пошук технічних і бізнес-партнерів.",
+    "date": "2026-04-25",
+    "organizer": "Львівська ІТ Спільнота",
+    "location": "Львів, !FESTrepublic",
+    "tags": ["IT", "бізнес", "нетворкінг"]
+  },
+  {
+    "id": 3,
+    "title": "Women in Business Networking",
+    "description": "Подія для жінок-підприємниць: менторство, обмін досвідом побудови бізнесу та створення стратегічних партнерств.",
+    "date": "2026-05-03",
+    "organizer": "She Means Business UA",
+    "location": "Одеса, Impact Hub",
+    "tags": ["жінки в бізнесі", "менторство"]
+  },
+  {
+    "id": 4,
+    "title": "Digital Marketing Mixer",
+    "description": "Зустріч маркетологів, SMM-спеціалістів та власників агенцій. Кейси, тренди та пошук нових клієнтів і партнерів.",
+    "date": "2026-05-10",
+    "organizer": "Marketing Club UA",
+    "location": "Київ, Creative Quarter",
+    "tags": ["маркетинг", "SMM", "агенції"]
+  },
+  {
+    "id": 5,
+    "title": "FinTech Partnership Forum",
+    "description": "Форум для фінтех-компаній, банків та інвесторів. Презентації продуктів, B2B-переговори та укладання партнерств.",
+    "date": "2026-05-17",
+    "organizer": "Ukrainian FinTech Association",
+    "location": "Київ, Hilton Hotel",
+    "tags": ["фінтех", "банки", "B2B"]
+  },
+  {
+    "id": 6,
+    "title": "Creative Industries Meet",
+    "description": "Нетворкінг для дизайнерів, фотографів, відеографів та креативних директорів. Портфоліо-ревю та пошук замовників.",
+    "date": "2026-05-24",
+    "organizer": "Creatives United",
+    "location": "Харків, Fabrika.space",
+    "tags": ["дизайн", "креатив", "портфоліо"]
+  },
+  {
+    "id": 7,
+    "title": "E-commerce Growth Meetup",
+    "description": "Зустріч власників онлайн-магазинів, логістичних компаній та платіжних сервісів для розвитку спільних проєктів.",
+    "date": "2026-06-01",
+    "organizer": "E-commerce UA",
+    "location": "Дніпро, Passage",
+    "tags": ["e-commerce", "логістика", "платежі"]
+  },
+  {
+    "id": 8,
+    "title": "AI & Data Science Networking",
+    "description": "Подія для дата-сайентистів, ML-інженерів та бізнесу, що шукає AI-рішення. Демо проєктів та пошук колаборацій.",
+    "date": "2026-06-07",
+    "organizer": "AI Ukraine",
+    "location": "Київ, Platforma Arts",
+    "tags": ["AI", "ML", "data science"]
+  },
+  {
+    "id": 9,
+    "title": "Real Estate & Investment Night",
+    "description": "Вечір для девелоперів, ріелторів та інвесторів у нерухомість. Огляд ринку, обмін контактами та спільні інвестиції.",
+    "date": "2026-06-14",
+    "organizer": "PropTech Ukraine",
+    "location": "Київ, Hyatt Regency",
+    "tags": ["нерухомість", "інвестиції", "девелопмент"]
+  },
+  {
+    "id": 10,
+    "title": "Social Impact Networking",
+    "description": "Зустріч соціальних підприємців, НГО та грантодавців. Пошук партнерів для проєктів з позитивним суспільним впливом.",
+    "date": "2026-06-21",
+    "organizer": "Impact Hub Kyiv",
+    "location": "Київ, Impact Hub",
+    "tags": ["соціальний вплив", "НГО", "гранти"]
+  }
+]
