@@ -9,10 +9,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server/index.mjs",
-    "server:dev": "nodemon server/index.mjs"
+    "server:dev": "nodemon server/index.mjs",
+    "express": "node express-server/index.mjs",
+    "express:dev": "nodemon express-server/index.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
+    "express": "^5.2.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-redux": "^9.2.0",
@@ -22,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
