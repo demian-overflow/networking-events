@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import { useAppSelector } from "./store";
+import { useAppSelector, useAppDispatch } from "./store";
 import { selectTheme } from "./store/themeSlice";
+import { fetchEvents } from "./store/eventsSlice";
 import { HomePage } from "./pages/HomePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ParticipantsPage } from "./pages/ParticipantsPage";
@@ -10,6 +12,11 @@ import { ToastContainer } from "./components/ToastContainer";
 
 export default function App() {
   const theme = useAppSelector(selectTheme);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(fetchEvents());
+  }, [dispatch]);
 
   return (
     <div className="app" data-theme={theme}>
