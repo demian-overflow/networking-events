@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { query } from "../db.mjs";
 import { config } from "../config.mjs";
+import { requireAuth, requireRole } from "../middleware/auth.mjs";
 
 const router = Router();
 
-// GET /participants/:eventId — offset-based by default, cursor if ?cursor= provided
-router.get("/:eventId", async (req, res, next) => {
+// GET /participants/:eventId — requires auth
+router.get("/:eventId", requireAuth, async (req, res, next) => {
   try {
     const eventId = Number(req.params.eventId);
 
@@ -78,6 +79,27 @@ router.get("/:eventId", async (req, res, next) => {
         totalPages: Math.ceil(total / limit),
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /participants/:eventId/:participantId — admin only
+router.delete("/:eventId/:participantId", requireRole("admin"), async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.eventId);
+    const participantId = Number(req.params.participantId);
+
+    const result = await query(
+      "DELETE FROM participants WHERE id = $1 AND event_id = $2 RETURNING id",
+      [participantId, eventId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Учасника не знайдено" });
+    }
+
+    res.json({ message: "Учасника видалено", id: participantId });
   } catch (err) {
     next(err);
   }

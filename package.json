@@ -16,7 +16,10 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
+    "bcrypt": "^6.0.0",
+    "connect-pg-simple": "^10.0.0",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
     "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

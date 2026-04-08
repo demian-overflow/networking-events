@@ -2,6 +2,17 @@ import { query } from "../db.mjs";
 
 export async function createTables() {
   await query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id            SERIAL PRIMARY KEY,
+      email         VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      full_name     VARCHAR(255) NOT NULL,
+      role          VARCHAR(50) NOT NULL DEFAULT 'organizer',
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS events (
       id            SERIAL PRIMARY KEY,
       title         VARCHAR(255) NOT NULL,
@@ -23,13 +34,25 @@ export async function createTables() {
     );
   `);
 
-  // Indexes for sorting and search
+  // Session table for connect-pg-simple
+  await query(`
+    CREATE TABLE IF NOT EXISTS "session" (
+      "sid" VARCHAR NOT NULL COLLATE "default",
+      "sess" JSON NOT NULL,
+      "expire" TIMESTAMP(6) NOT NULL,
+      CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire);`);
+
+  // Indexes
   await query(`CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_events_title ON events(title);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_events_date_id ON events(date, id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_events_title_id ON events(title, id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_participants_event_id ON participants(event_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_participants_registered_at ON participants(registered_at);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
 
   console.log("Tables and indexes created.");
 }

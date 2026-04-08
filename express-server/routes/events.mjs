@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../db.mjs";
 import { config } from "../config.mjs";
 import { validateEventsQuery } from "../middleware/validateQuery.mjs";
+import { requireRole } from "../middleware/auth.mjs";
 
 const router = Router();
 
@@ -101,6 +102,46 @@ router.get("/:id", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const result = await query("SELECT * FROM events WHERE id = $1", [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Подію не знайдено" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /events/:id — admin only
+router.delete("/:id", requireRole("admin"), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await query("DELETE FROM events WHERE id = $1 RETURNING id", [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Подію не знайдено" });
+    }
+
+    res.json({ message: "Подію видалено", id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /events/:id — admin only
+router.put("/:id", requireRole("admin"), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { title, description, date, organizer, location, tags } = req.body;
+
+    const result = await query(
+      `UPDATE events SET title = COALESCE($1, title), description = COALESCE($2, description),
+       date = COALESCE($3, date), organizer = COALESCE($4, organizer),
+       location = COALESCE($5, location), tags = COALESCE($6, tags)
+       WHERE id = $7 RETURNING *`,
+      [title, description, date, organizer, location, tags, id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Подію не знайдено" });

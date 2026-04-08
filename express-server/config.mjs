@@ -5,6 +5,11 @@ export const config = {
   defaultPage: 1,
   defaultLimit: 10,
   maxLimit: 100,
+  session: {
+    secret: process.env.SESSION_SECRET ?? "networking-events-secret-key-change-in-prod",
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+  bcryptRounds: 10,
   db: {
     host: process.env.DB_HOST ?? "localhost",
     port: Number(process.env.DB_PORT ?? 5433),
