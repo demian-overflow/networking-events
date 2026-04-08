@@ -6,6 +6,7 @@ import {
 import type { Participant } from "../types";
 import type { RootState } from ".";
 import { addToast } from "./toastsSlice";
+import { api } from "../api";
 
 const participantsAdapter = createEntityAdapter<Participant>();
 
@@ -29,67 +30,70 @@ export const fetchParticipants = createAsyncThunk<
   { rejectValue: string }
 >("participants/fetch", async (eventId, { dispatch, rejectWithValue }) => {
   try {
-    const res = await fetch(`/api/events/${eventId}/participants`);
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch {
-    // API unavailable
-  }
-
-  // Fallback to localStorage
-  try {
-    const raw = localStorage.getItem(`participants-${eventId}`);
-    if (raw) {
-      return JSON.parse(raw) as Participant[];
-    }
-    return [];
+    const res = await api.getParticipants(eventId);
+    return res.data.map((p) => ({
+      id: p.id,
+      fullName: p.full_name,
+      email: p.email,
+      registeredAt: p.registered_at,
+    }));
   } catch (error) {
-    const msg = "Не вдалося завантажити учасників";
-    dispatch(addToast({ message: msg, type: "error" }));
-    return rejectWithValue(msg);
+    // Fallback to localStorage if not logged in
+    try {
+      const raw = localStorage.getItem(`participants-${eventId}`);
+      if (raw) {
+        return JSON.parse(raw) as Participant[];
+      }
+      return [];
+    } catch {
+      const msg = "Не вдалося завантажити учасників";
+      dispatch(addToast({ message: msg, type: "error" }));
+      return rejectWithValue(msg);
+    }
   }
 });
 
 export const registerParticipant = createAsyncThunk<
   Participant,
-  { eventId: number; data: Omit<Participant, "id" | "registeredAt"> & { birthDate: string; source: string } },
+  { eventId: number; data: { fullName: string; email: string; birthDate: string; source: string } },
   { rejectValue: string }
 >(
   "participants/register",
   async ({ eventId, data }, { dispatch, rejectWithValue }) => {
-    const participant: Participant = {
-      id: Date.now(),
-      fullName: data.fullName,
-      email: data.email,
-      registeredAt: new Date().toISOString(),
-    };
-
     try {
-      const res = await fetch(`/api/events/${eventId}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      const res = await api.registerParticipant({
+        event_id: eventId,
+        full_name: data.fullName,
+        email: data.email,
       });
-      if (res.ok) {
-        dispatch(addToast({ message: "Реєстрацію завершено!", type: "success" }));
-        return participant;
-      }
+      const p = res as { id: number; full_name: string; email: string; registered_at: string };
+      dispatch(addToast({ message: "Реєстрацію завершено!", type: "success" }));
+      return {
+        id: p.id,
+        fullName: p.full_name,
+        email: p.email,
+        registeredAt: p.registered_at,
+      };
     } catch {
-      // API unavailable — store locally
-    }
-
-    try {
-      const key = `participants-${eventId}`;
-      const existing = JSON.parse(localStorage.getItem(key) || "[]");
-      existing.push(participant);
-      localStorage.setItem(key, JSON.stringify(existing));
+      // Fallback to localStorage
+      const participant: Participant = {
+        id: Date.now(),
+        fullName: data.fullName,
+        email: data.email,
+        registeredAt: new Date().toISOString(),
+      };
+      try {
+        const key = `participants-${eventId}`;
+        const existing = JSON.parse(localStorage.getItem(key) || "[]");
+        existing.push(participant);
+        localStorage.setItem(key, JSON.stringify(existing));
+      } catch {
+        const msg = "Не вдалося зберегти реєстрацію";
+        dispatch(addToast({ message: msg, type: "error" }));
+        return rejectWithValue(msg);
+      }
       dispatch(addToast({ message: "Реєстрацію завершено!", type: "success" }));
       return participant;
-    } catch {
-      const msg = "Не вдалося зберегти реєстрацію";
-      dispatch(addToast({ message: msg, type: "error" }));
-      return rejectWithValue(msg);
     }
   }
 );
@@ -127,7 +131,6 @@ const participantsSlice = createSlice({
 export const { setParticipantSearch } = participantsSlice.actions;
 export const participantsReducer = participantsSlice.reducer;
 
-// Selectors
 const adapterSelectors = participantsAdapter.getSelectors<RootState>(
   (state) => state.participants
 );

@@ -5,6 +5,7 @@ import { HomePage } from "./pages/HomePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ParticipantsPage } from "./pages/ParticipantsPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { ChatPage } from "./pages/ChatPage";
 import { ToastContainer } from "./components/ToastContainer";
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/register/:eventId" element={<RegisterPage />} />
         <Route path="/participants/:eventId" element={<ParticipantsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/chat" element={<ChatPage />} />
       </Routes>
       <ToastContainer />
     </div>

@@ -9,13 +9,14 @@ import { requestLogger } from "./middleware/logger.mjs";
 import authRouter from "./routes/auth.mjs";
 import eventsRouter from "./routes/events.mjs";
 import participantsRouter from "./routes/participants.mjs";
+import analyticsRouter from "./routes/analytics.mjs";
 import { typeDefs } from "./graphql/schema.mjs";
 import { resolvers } from "./graphql/resolvers.mjs";
+import { setupChat } from "./chat.mjs";
 
 const PgStore = connectPgSimple(session);
 const app = express();
 
-// Global middleware
 app.use(express.json());
 app.use(requestLogger);
 
@@ -48,8 +49,9 @@ app.use(sessionMiddleware);
 app.use("/auth", authRouter);
 app.use("/events", eventsRouter);
 app.use("/participants", participantsRouter);
+app.use("/analytics", analyticsRouter);
 
-// GraphQL via Apollo Server v5 (manual Express handler)
+// GraphQL
 const apollo = new ApolloServer({ typeDefs, resolvers });
 await apollo.start();
 
@@ -97,10 +99,14 @@ app.use((err, req, res, _next) => {
 
 const server = http.createServer(app);
 
+// Socket.io chat
+setupChat(server, sessionMiddleware);
+
 server.listen(config.port, config.host, () => {
   const addr = server.address();
   const host = addr.address === "0.0.0.0" ? "localhost" : addr.address;
   console.log(`Server running at http://${host}:${addr.port}`);
-  console.log("REST:    /auth, /events, /participants");
-  console.log("GraphQL: POST /graphql");
+  console.log("REST:      /auth, /events, /participants, /analytics");
+  console.log("GraphQL:   POST /graphql");
+  console.log("WebSocket: Socket.io chat");
 });

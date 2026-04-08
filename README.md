@@ -1,56 +1,8 @@
 # Networking Events
 
-Web application for discovering networking events and finding business partners.
+Full-stack event management system with REST/GraphQL API, real-time chat, and analytics.
 
-## Frontend
-
-React + TypeScript + Vite + Redux Toolkit + Recharts
-
-```bash
-npm install
-npm run dev
-```
-
-Open http://localhost:5173
-
-Build for production:
-
-```bash
-npm run build
-npm run preview
-```
-
-### Pages
-
-- `/` — event list with search and favorites
-- `/register/:eventId` — registration form (Zod validation)
-- `/participants/:eventId` — participant list with search
-- `/analytics` — charts and stats, external event import
-
-## Server (Node.js http)
-
-Pure Node.js HTTP server, no frameworks. Located in `server/`.
-
-```bash
-npm install
-npm run server:dev
-```
-
-Runs at http://localhost:3000
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/events` | All events |
-| GET | `/api/events?search=keyword` | Filter by title |
-| GET | `/api/events/:id` | Single event |
-
-`server:dev` uses nodemon for auto-restart. Use `npm run server` for plain node.
-
-## Server (Express.js + PostgreSQL)
-
-Express 5 server with PostgreSQL, middleware, pagination, sorting, and query validation. Located in `express-server/`.
-
-### Setup
+## Quick Start
 
 ```bash
 # 1. Start PostgreSQL
@@ -62,64 +14,185 @@ npm install
 # 3. Seed the database
 npm run db:seed
 
-# 4. Start the server
+# 4. Start backend (terminal 1)
 npm run express:dev
+
+# 5. Start frontend (terminal 2)
+npm run dev
 ```
 
-Runs at http://localhost:3002
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3002
+- GraphQL: http://localhost:3002/graphql
 
-### API — Events
+### Test Accounts
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/events` | All events (offset pagination) |
-| GET | `/events?page=2&limit=5` | Offset pagination |
-| GET | `/events?cursor=5&limit=5` | Cursor-based pagination |
-| GET | `/events?sort=date&order=desc` | Sort by date or title |
-| GET | `/events?search=keyword` | Filter by title |
-| GET | `/events/:id` | Single event |
+| Email | Password | Role |
+|-------|----------|------|
+| admin@example.com | admin123 | admin |
+| organizer@example.com | org123 | organizer |
 
-### API — Participants
+## Environment Variables
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/participants/:eventId` | Participants for an event (offset pagination) |
-| GET | `/participants/:eventId?page=2&limit=5` | Offset pagination |
-| GET | `/participants/:eventId?cursor=10&limit=5` | Cursor-based pagination |
-| GET | `/participants/:eventId?search=name` | Filter by name or email |
+Copy `express-server/.env.example` and adjust values:
 
-Query parameters can be combined. Invalid queries return `400` with error details. Unknown routes return `404`.
+```
+PORT=3002
+HOST=0.0.0.0
+CORS_ORIGIN=http://localhost:5173
+SESSION_SECRET=change-me-in-production
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=networking
+DB_PASSWORD=networking
+DB_NAME=networking_events
+```
 
-`express:dev` uses nodemon for auto-restart. Use `npm run express` for plain node.
+Frontend uses `VITE_API_URL` (defaults to `http://localhost:3002`).
+
+## Frontend
+
+React 19 + TypeScript + Vite + Redux Toolkit + Recharts + Socket.io
+
+```bash
+npm run dev       # dev server on :5173
+npm run build     # production build
+npm run preview   # preview production build
+```
+
+### Pages
+
+- `/` — event list with search, favorites, filtering
+- `/register/:eventId` — registration form (Zod validation)
+- `/participants/:eventId` — participant list with search
+- `/analytics` — interactive charts from DB (registrations/day, per event, organizers)
+- `/chat` — real-time support chat (Socket.io)
+
+## Server (Node.js http)
+
+Pure `http` module server in `server/`. No frameworks.
+
+```bash
+npm run server:dev    # port 3000
+```
+
+## Server (Express.js + PostgreSQL)
+
+Express 5 + PostgreSQL + Apollo GraphQL + Socket.io. Located in `express-server/`.
+
+```bash
+npm run express:dev   # port 3002
+npm run db:seed       # seed database
+```
+
+### REST API
+
+**Auth:**
+
+| Method | Route | Access |
+|--------|-------|--------|
+| POST | `/auth/register` | Public |
+| POST | `/auth/login` | Public |
+| POST | `/auth/logout` | Public |
+| GET | `/auth/me` | Auth |
+
+**Events:**
+
+| Method | Route | Access |
+|--------|-------|--------|
+| GET | `/events` | Public |
+| GET | `/events/:id` | Public |
+| POST | `/events` | Auth |
+| PUT | `/events/:id` | Owner/Admin |
+| DELETE | `/events/:id` | Owner/Admin |
+
+Supports `?page=&limit=`, `?cursor=`, `?sort=date&order=desc`, `?search=`.
+
+**Participants:**
+
+| Method | Route | Access |
+|--------|-------|--------|
+| GET | `/participants/:eventId` | Auth |
+| POST | `/participants` | Auth |
+| DELETE | `/participants/:eid/:pid` | Admin |
+
+**Analytics:**
+
+| Method | Route | Access |
+|--------|-------|--------|
+| GET | `/analytics` | Public |
+
+### GraphQL
+
+`POST /graphql` — queries and mutations with session auth via cookies.
+
+```graphql
+# Nested query (event + creator + participants in one request)
+{
+  getEvents(limit: 5, search: "tech") {
+    data {
+      id title date
+      creator { full_name email }
+      participants { full_name email }
+      participant_count
+    }
+    total
+  }
+}
+
+# Mutation
+mutation {
+  addEvent(input: { title: "New Event", date: "2026-09-01" }) {
+    id title creator_id
+  }
+}
+```
+
+### WebSocket Chat
+
+Socket.io at the same port. Events:
+
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `chat:message` | Client → Server | Send message `{ text }` |
+| `chat:message` | Server → Client | Broadcast `{ id, userName, text, timestamp }` |
+| `chat:typing` | Client → Server | Typing indicator |
+| `chat:typing` | Server → Client | Broadcast `{ userName }` |
+| `chat:welcome` | Server → Client | On connect `{ message, userName }` |
+| `chat:system` | Server → Client | Join/leave notifications |
 
 ### Database
 
-PostgreSQL 16 via Docker Compose. Connection: `postgresql://networking:networking@localhost:5433/networking_events`
+PostgreSQL 16 via Docker Compose on port 5433.
 
-Tables:
-- `events` — id, title, description, date, organizer, location, tags
-- `participants` — id, event_id (FK), full_name, email, registered_at
+Tables: `users`, `events` (with `creator_id` FK), `participants`, `session`
 
-Indexes on: `events(date)`, `events(title)`, `events(date, id)`, `events(title, id)`, `participants(event_id)`, `participants(registered_at)`
+Indexes: `events(date)`, `events(title)`, `events(date,id)`, `events(title,id)`, `events(creator_id)`, `participants(event_id)`, `participants(registered_at)`, `users(email)`
 
 ### Structure
 
 ```
 express-server/
-  index.mjs                    — server entry point
-  config.mjs                   — port, host, CORS, DB connection, pagination
+  index.mjs                    — server entry (Express + Apollo + Socket.io)
+  config.mjs                   — all configuration
   db.mjs                       — pg connection pool
-  data.mjs                     — seed data (events)
+  chat.mjs                     — Socket.io chat handler
+  data.mjs                     — seed data
   db/schema.mjs                — CREATE TABLE + indexes
-  db/seed.mjs                  — seed script (events + participants)
-  routes/events.mjs            — GET /events, GET /events/:id
-  routes/participants.mjs      — GET /participants/:eventId
-  middleware/logger.mjs        — request logging
-  middleware/validateQuery.mjs — query param validation
+  db/seed.mjs                  — seed script
+  graphql/schema.mjs           — GraphQL type definitions
+  graphql/resolvers.mjs        — GraphQL resolvers
+  routes/auth.mjs              — register, login, logout, me
+  routes/events.mjs            — CRUD + pagination + sorting
+  routes/participants.mjs      — list + register + delete
+  routes/analytics.mjs         — aggregated stats
+  middleware/auth.mjs           — requireAuth, requireRole
+  middleware/logger.mjs         — request logging
+  middleware/validateQuery.mjs  — query param validation
 ```
 
 ## Tech Stack
 
-- **Frontend:** React 19, TypeScript, Vite, Redux Toolkit, React Router, Zod, Recharts
-- **Backend:** Node.js http module, Express 5, PostgreSQL 16, pg
-- **Deploy:** Vercel (frontend)
+- **Frontend:** React 19, TypeScript, Vite, Redux Toolkit, React Router, Zod, Recharts, Socket.io Client
+- **Backend:** Express 5, PostgreSQL 16, Apollo Server 5 (GraphQL), Socket.io, bcrypt, express-session
+- **Deploy:** Vercel (frontend), Render/Railway (backend + DB)
