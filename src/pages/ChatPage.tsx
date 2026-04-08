@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3002";
+// Socket.io needs direct connection (can't go through Vercel proxy)
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_API_URL ?? "http://localhost:3002";
 
 interface ChatMessage {
   id: number;
@@ -23,7 +24,7 @@ export function ChatPage() {
   const typingTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
-    const socket = io(API_URL, { withCredentials: true });
+    const socket = io(SOCKET_URL, { withCredentials: true });
     socketRef.current = socket;
 
     socket.on("connect", () => setConnected(true));

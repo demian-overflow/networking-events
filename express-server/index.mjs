@@ -22,7 +22,14 @@ app.use(requestLogger);
 
 // CORS
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", config.corsOrigin);
+  const origin = req.headers.origin;
+  const allowed = config.corsOrigin;
+  // If CORS_ORIGIN is *, reflect the request origin (needed for credentials)
+  if (allowed === "*" && origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", allowed);
+  }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Credentials", "true");
