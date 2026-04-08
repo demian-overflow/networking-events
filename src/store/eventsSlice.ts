@@ -7,6 +7,7 @@ import {
 import type { NetworkingEvent } from "../types";
 import type { RootState } from ".";
 import { addToast } from "./toastsSlice";
+import { api } from "../api";
 import { events as seedEvents } from "../data/events";
 
 const FAVORITES_KEY = "networking-favorites";
@@ -38,6 +39,8 @@ interface EventsExtra {
   favoritesOnly: boolean;
   favorites: number[];
   importing: boolean;
+  loading: boolean;
+  loaded: boolean;
 }
 
 const initialState = eventsAdapter.getInitialState<EventsExtra>({
@@ -45,63 +48,37 @@ const initialState = eventsAdapter.getInitialState<EventsExtra>({
   favoritesOnly: false,
   favorites: loadFavorites(),
   importing: false,
+  loading: false,
+  loaded: false,
 });
 
-// Seed the adapter with static data
-const seededState = eventsAdapter.setAll(initialState, seedEvents);
+// Fetch events from backend API
+export const fetchEvents = createAsyncThunk<NetworkingEvent[], void>(
+  "events/fetch",
+  async () => {
+    try {
+      const res = await api.getEvents("limit=100");
+      return (res.data as Array<Record<string, unknown>>).map((e) => ({
+        id: e.id as number,
+        title: e.title as string,
+        description: e.description as string,
+        date: typeof e.date === "string" ? e.date.split("T")[0] : String(e.date),
+        organizer: e.organizer as string,
+        location: e.location as string,
+        tags: (e.tags as string[]) ?? [],
+      }));
+    } catch {
+      // API unavailable — return static seed data
+      return seedEvents;
+    }
+  }
+);
 
-// Import events from Eventbrite-like open API (using Open Event / Eventyay)
 export const importExternalEvents = createAsyncThunk<
   NetworkingEvent[],
   void,
   { rejectValue: string }
 >("events/importExternal", async (_, { getState, dispatch, rejectWithValue }) => {
-  try {
-    // Use Eventbrite public search API for networking/business events
-    const res = await fetch(
-      "https://www.eventbriteapi.com/v3/events/search/?q=networking+business&sort_by=date&expand=venue",
-      { headers: { Authorization: `Bearer ${import.meta.env.VITE_EVENTBRITE_TOKEN ?? ""}` } }
-    );
-
-    if (res.ok) {
-      const data = await res.json();
-      const state = getState() as RootState;
-      const existingIds = new Set(selectAllEvents(state).map((e) => e.id));
-      let nextId = Math.max(...existingIds, 0) + 1000;
-
-      const imported: NetworkingEvent[] = data.events
-        .slice(0, 5)
-        .map((ev: Record<string, unknown>) => {
-          const name = (ev.name as Record<string, string>)?.text ?? "Unnamed Event";
-          const desc = (ev.description as Record<string, string>)?.text ?? "";
-          const start = (ev.start as Record<string, string>)?.local ?? new Date().toISOString();
-          const venue = ev.venue as Record<string, unknown> | null;
-          const address = venue?.address as Record<string, string> | null;
-
-          return {
-            id: nextId++,
-            title: name,
-            description: desc.slice(0, 200),
-            date: start.split("T")[0],
-            organizer: "Eventbrite",
-            location: address?.localized_address_display ?? "Online",
-            tags: ["imported", "networking"],
-          };
-        });
-
-      dispatch(
-        addToast({
-          message: `Імпортовано ${imported.length} подій з Eventbrite`,
-          type: "success",
-        })
-      );
-      return imported;
-    }
-  } catch {
-    // Eventbrite API unavailable — fall through
-  }
-
-  // Fallback: generate demo imported events to show the feature works
   try {
     const state = getState() as RootState;
     const existingIds = new Set(selectAllEvents(state).map((e) => e.id));
@@ -156,7 +133,7 @@ export const importExternalEvents = createAsyncThunk<
 
 const eventsSlice = createSlice({
   name: "events",
-  initialState: seededState,
+  initialState,
   reducers: {
     setSearch(state, action: PayloadAction<string>) {
       state.search = action.payload;
@@ -177,6 +154,18 @@ const eventsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchEvents.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchEvents.fulfilled, (state, action) => {
+        state.loading = false;
+        state.loaded = true;
+        eventsAdapter.setAll(state, action.payload);
+      })
+      .addCase(fetchEvents.rejected, (state) => {
+        state.loading = false;
+        state.loaded = true;
+      })
       .addCase(importExternalEvents.pending, (state) => {
         state.importing = true;
       })
@@ -203,6 +192,8 @@ export const selectAllEvents = adapterSelectors.selectAll;
 export const selectEventById = adapterSelectors.selectById;
 export const selectTotalCount = adapterSelectors.selectTotal;
 export const selectImporting = (state: RootState) => state.events.importing;
+export const selectEventsLoading = (state: RootState) => state.events.loading;
+export const selectEventsLoaded = (state: RootState) => state.events.loaded;
 
 export const selectSearch = (state: RootState) => state.events.search;
 export const selectFavoritesOnly = (state: RootState) =>

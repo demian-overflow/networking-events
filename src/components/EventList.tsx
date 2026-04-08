@@ -1,9 +1,15 @@
 import { useAppSelector } from "../store";
-import { selectFilteredEvents, selectIsFavorite } from "../store/eventsSlice";
+import { selectFilteredEvents, selectIsFavorite, selectEventsLoading } from "../store/eventsSlice";
 import { EventCard } from "./EventCard";
+import { CardSkeleton } from "./Skeleton";
 
 export function EventList() {
   const events = useAppSelector(selectFilteredEvents);
+  const loading = useAppSelector(selectEventsLoading);
+
+  if (loading) {
+    return <CardSkeleton />;
+  }
 
   if (events.length === 0) {
     return (
